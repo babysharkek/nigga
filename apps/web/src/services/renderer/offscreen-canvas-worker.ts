@@ -16,7 +16,7 @@ self.onmessage = (e) => {
   if (e.data.canvas) {
     // Initialize offscreen canvas
     canvas = e.data.canvas;
-    ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
     width = canvas.width;
     height = canvas.height;
     
