@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { WASMEffectsPanel } from '@/components/effects/wasm-effects-panel';
 import { WASMTimeline } from '@/components/timeline/wasm-timeline';
