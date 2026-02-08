@@ -44,7 +44,7 @@ export function SmoothVideoPlayer({
       setHardwareCapabilities(capabilities);
       
       // Initialize hardware-accelerated decoding
-      await hardwareAccelerationRef.current.initializeDecoding('avc1.42E01E', width, height);
+      await hardwareAccelerationRef.current.initializeDecoding('avc1.42E01E');
       
       // Set up buffer health monitoring
       bufferManagerRef.current.onBufferHealth((health) => {
