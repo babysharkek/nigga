@@ -1,5 +1,4 @@
-import { VideoEncoder, VideoEncoderConfig, EncodedVideoChunk } from 'webcodecs';
-
+// WebCodecs API for hardware-accelerated video encoding
 export class WebCodecsEncoder {
   private encoder: VideoEncoder;
   private chunks: EncodedVideoChunk[] = [];
@@ -9,7 +8,7 @@ export class WebCodecsEncoder {
     this.encoder = new VideoEncoder({
       output: (chunk, metadata) => {
         this.chunks.push(chunk);
-        if (metadata.decoderConfig) {
+        if (metadata && metadata.decoderConfig) {
           // Final chunk, create blob
           const blob = new Blob(this.chunks.map(c => c.data), { type: 'video/mp4' });
           if (this.resolvePromise) {
