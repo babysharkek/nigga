@@ -1,13 +1,14 @@
 import type { Config } from "drizzle-kit";
 import * as dotenv from "dotenv";
-import { webEnv } from "@opencut/env/web";
 
 // Load the right env file based on environment
-if (webEnv.NODE_ENV === "production") {
-  dotenv.config({ path: ".env.production" });
+if (process.env.NODE_ENV === "production") {
+	dotenv.config({ path: ".env.production" });
 } else {
-  dotenv.config({ path: ".env.local" });
+	dotenv.config({ path: ".env.local" });
 }
+
+import { webEnv } from "@opencut/env/web";
 
 export default {
   schema: "./src/schema.ts",
@@ -16,7 +17,7 @@ export default {
     table: "drizzle_migrations",
   },
   dbCredentials: {
-    url: webEnv.DATABASE_URL,
+		url: webEnv.DATABASE_URL ?? "postgresql://opencut:opencut@localhost:5432/opencut",
   },
   out: "./migrations",
   strict: webEnv.NODE_ENV === "production",

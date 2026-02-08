@@ -38,146 +38,118 @@
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
-
-- [Node.js](https://nodejs.org/en/) (v18 or later)
-- [Bun](https://bun.sh/docs/installation)
-  (for `npm` alternative)
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
-
-> **Note:** Docker is optional, but it's essential for running the local database and Redis services. If you're planning to run the frontend or want to contribute to frontend features, you can skip the Docker setup. If you have followed the steps below in [Setup](#setup), you're all set to go!
+- Node.js 18+ 
+- Bun (recommended) or npm
+- PostgreSQL database
+- Redis (for rate limiting)
 
 ### Setup
 
-1. Fork the repository
-2. Clone your fork locally
-3. Navigate to the web app directory: `cd apps/web`
-4. Copy `.env.example` to `.env.local`:
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/opencut.git
+cd opencut
+```
 
-   ```bash
-   # Unix/Linux/Mac
-   cp .env.example .env.local
+2. Install dependencies:
+```bash
+bun install
+```
 
-   # Windows Command Prompt
-   copy .env.example .env.local
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+# Edit .env.local with your configuration
+```
 
-   # Windows PowerShell
-   Copy-Item .env.example .env.local
-   ```
+4. Set up the database:
+```bash
+cd apps/web
+bun run db:push:local
+```
 
-5. Install dependencies: `bun install`
-6. Start the development server: `bun dev`
+5. Start the development server:
+```bash
+bun run dev
+```
 
-## Development Setup
+## Deployment
 
-### Local Development
+### Vercel
 
-1. Start the database and Redis services:
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Configure environment variables in Vercel dashboard
+4. Deploy
 
-   ```bash
-   # From project root
-   docker-compose up -d
-   ```
+Required environment variables for production:
+- `NEXT_PUBLIC_SITE_URL` - Your deployed app URL
+- `NEXT_PUBLIC_MARBLE_API_URL` - Marble API endpoint
+- `DATABASE_URL` - PostgreSQL connection string
+- `BETTER_AUTH_SECRET` - Secret for authentication
+- `UPSTASH_REDIS_REST_URL` - Redis URL for rate limiting
+- `UPSTASH_REDIS_REST_TOKEN` - Redis token
+- `MARBLE_WORKSPACE_KEY` - Marble workspace key
+- `FREESOUND_CLIENT_ID` - FreeSound API client ID
+- `FREESOUND_API_KEY` - FreeSound API key
+- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
+- `R2_ACCESS_KEY_ID` - Cloudflare R2 access key
+- `R2_SECRET_ACCESS_KEY` - Cloudflare R2 secret key
+- `R2_BUCKET_NAME` - Cloudflare R2 bucket name
+- `MODAL_TRANSCRIPTION_URL` - Modal transcription service URL
 
-2. Navigate to the web app directory:
+## Architecture
 
-   ```bash
-   cd apps/web
-   ```
+The editor uses a **singleton EditorCore** that manages all editor state through specialized managers:
 
-3. Copy `.env.example` to `.env.local`:
+```
+EditorCore (singleton)
+├── playback: PlaybackManager
+├── timeline: TimelineManager
+├── scene: SceneManager
+├── project: ProjectManager
+├── media: MediaManager
+└── renderer: RendererManager
+```
 
-   ```bash
-   # Unix/Linux/Mac
-   cp .env.example .env.local
+### Usage in React Components
 
-   # Windows Command Prompt
-   copy .env.example .env.local
+Always use the `useEditor()` hook:
 
-   # Windows PowerShell
-   Copy-Item .env.example .env.local
-   ```
+```typescript
+import { useEditor } from '@/hooks/use-editor';
 
-4. Configure required environment variables in `.env.local`:
+function MyComponent() {
+  const editor = useEditor();
+  const tracks = editor.timeline.getTracks();
+  
+  editor.timeline.addTrack({ type: 'media' });
+  
+  return <div>{tracks.length} tracks</div>;
+}
+```
 
-   **Required Variables:**
+### Actions System
 
-   ```bash
-   # Database (matches docker-compose.yaml)
-   DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
+Actions are the trigger layer for user-initiated operations. Use `invokeAction()` for user-triggered operations:
 
-   # Generate a secure secret for Better Auth
-   BETTER_AUTH_SECRET="your-generated-secret-here"
-   BETTER_AUTH_URL="http://localhost:3000"
+```typescript
+import { invokeAction } from '@/lib/actions';
 
-   # Redis (matches docker-compose.yaml)
-   UPSTASH_REDIS_REST_URL="http://localhost:8079"
-   UPSTASH_REDIS_REST_TOKEN="example_token"
-
-   # Marble Blog
-   MARBLE_WORKSPACE_KEY=cm6ytuq9x0000i803v0isidst # example organization key
-   NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com
-
-   # Development
-   NODE_ENV="development"
-   ```
-
-   **Generate BETTER_AUTH_SECRET:**
-
-   ```bash
-   # Unix/Linux/Mac
-   openssl rand -base64 32
-
-   # Windows PowerShell (simple method)
-   [System.Web.Security.Membership]::GeneratePassword(32, 0)
-
-   # Cross-platform (using Node.js)
-   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-
-   # Or use an online generator: https://generate-secret.vercel.app/32
-   ```
-
-5. Run database migrations: `bun run db:migrate` from (inside apps/web)
-6. Start the development server: `bun run dev` from (inside apps/web)
-
-The application will be available at [http://localhost:3000](http://localhost:3000).
+const handleSplit = () => invokeAction("split-selected");
+```
 
 ## Contributing
 
-We welcome contributions! While we're actively developing and refactoring certain areas, there are plenty of opportunities to contribute effectively.
-
-**🎯 Focus areas:** Timeline functionality, project management, performance, bug fixes, and UI improvements outside the preview panel.
-
-**⚠️ Avoid for now:** Preview panel enhancements (fonts, stickers, effects) and export functionality - we're refactoring these with a new binary rendering approach.
-
-See our [Contributing Guide](.github/CONTRIBUTING.md) for detailed setup instructions, development guidelines, and complete focus area guidance.
-
-**Quick start for contributors:**
-
-- Fork the repo and clone locally
-- Follow the setup instructions in CONTRIBUTING.md
-- Create a feature branch and submit a PR
-
-## Sponsors
-
-Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss) and [fal.ai](https://fal.ai?utm_source=github-opencut&utm_campaign=oss) for their support of open-source software.
-
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
-
-<a href="https://fal.ai">
-  <img alt="Powered by fal.ai" src="https://img.shields.io/badge/Powered%20by-fal.ai-000000?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCAxMEwxMy4wOSAxNS43NEwxMiAyMkwxMC45MSAxNS43NEw0IDEwTDEwLjkxIDguMjZMMTIgMloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" />
-</a>
-
----
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOpenCut-app%2FOpenCut&project-name=opencut&repository-name=opencut)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## License
 
-[MIT LICENSE](LICENSE)
 
----
+## License
 
-![Star History Chart](https://api.star-history.com/svg?repos=opencut-app/opencut&type=Date)
+MIT
