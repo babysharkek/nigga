@@ -34,7 +34,7 @@ export function PerformanceTimeline({
   const thumbnailCacheRef = useRef(new VideoThumbnailCache());
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   
   const trackHeight = 60;
   const trackPadding = 10;
