@@ -7,7 +7,8 @@ export class WebAssemblyTranscoder {
   async initialize(): Promise<boolean> {
     try {
       // Load FFmpeg.wasm (in production, this would be from npm)
-      const { default: createFFmpeg } = await import('@ffmpeg/ffmpeg');
+      const ffmpegModule = await import('@ffmpeg/ffmpeg');
+      const createFFmpeg = (ffmpegModule as any).default || (ffmpegModule as any).createFFmpeg;
       this.ffmpeg = createFFmpeg({
         log: true,
         corePath: '/ffmpeg-core.js',
