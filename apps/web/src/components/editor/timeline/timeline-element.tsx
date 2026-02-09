@@ -30,6 +30,8 @@ import { mediaSupportsAudio } from "@/lib/media/media-utils";
 import { getActionDefinition, type TAction, invokeAction } from "@/lib/actions";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
 import Image from "next/image";
+import { VideoThumbnailCache } from "@/services/renderer/video-thumbnail-cache";
+import { useState, useEffect, useRef } from "react";
 import {
 	ScissorIcon,
 	Delete02Icon,
@@ -344,6 +346,41 @@ function ElementContent({
 	isSelected: boolean;
 	mediaAssets: MediaAsset[];
 }) {
+	const thumbnailCacheRef = useRef(new VideoThumbnailCache());
+	const [thumbnails, setThumbnails] = useState<Map<string, ImageBitmap>>(new Map());
+	const [isLoading, setIsLoading] = useState(false);
+
+	// Generate thumbnails for video elements
+	useEffect(() => {
+		if (element.type === "video" && hasMediaId(element)) {
+			const mediaAsset = mediaAssets.find((asset) => asset.id === (element as any).mediaId);
+			if (mediaAsset?.url) {
+				generateVideoThumbnails(mediaAsset.url);
+			}
+		}
+	}, [(element as any).mediaId, mediaAssets]);
+
+	const generateVideoThumbnails = async (videoUrl: string) => {
+		setIsLoading(true);
+		const cache = thumbnailCacheRef.current;
+		const newThumbnails = new Map<string, ImageBitmap>();
+
+		// Generate thumbnails every 2 seconds
+		for (let t = 0; t < element.duration; t += 2) {
+			try {
+				const thumbnail = await cache.getThumbnail(videoUrl, t);
+				if (thumbnail) {
+					newThumbnails.set(`${t}`, thumbnail);
+				}
+			} catch (error) {
+				console.error('Failed to generate thumbnail:', error);
+			}
+		}
+
+		setThumbnails(newThumbnails);
+		setIsLoading(false);
+	};
+
 	if (element.type === "text") {
 		return (
 			<div className="flex size-full items-center justify-start pl-2">
@@ -408,14 +445,9 @@ function ElementContent({
 		);
 	}
 
-	if (
-		mediaAsset.type === "image" ||
-		(mediaAsset.type === "video" && mediaAsset.thumbnailUrl)
-	) {
+	if (mediaAsset.type === "image") {
 		const trackHeight = getTrackHeight({ type: track.type });
 		const tileWidth = trackHeight * (16 / 9);
-		const imageUrl =
-			mediaAsset.type === "image" ? mediaAsset.url : mediaAsset.thumbnailUrl;
 
 		return (
 			<div className="flex size-full items-center justify-center">
@@ -425,7 +457,7 @@ function ElementContent({
 					<div
 						className="absolute right-0 left-0"
 						style={{
-							backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
+							backgroundImage: `url(${mediaAsset.url})`,
 							backgroundRepeat: "repeat-x",
 							backgroundSize: `${tileWidth}px ${trackHeight}px`,
 							backgroundPosition: "left center",
@@ -434,6 +466,52 @@ function ElementContent({
 							bottom: isSelected ? "0.25rem" : "0rem",
 						}}
 					/>
+				</div>
+			</div>
+		);
+	}
+
+	// Video element with thumbnails
+	if (mediaAsset.type === "video") {
+		const trackHeight = getTrackHeight({ type: track.type });
+		const thumbnailWidth = trackHeight * (16 / 9);
+
+		return (
+			<div className="flex size-full items-center justify-center">
+				<div
+					className={`relative size-full ${isSelected ? "bg-primary" : "bg-transparent"} overflow-hidden`}
+				>
+					{isLoading ? (
+						<div className="flex items-center justify-center h-full">
+							<div className="text-xs text-white">Loading thumbnails...</div>
+						</div>
+					) : (
+						<div className="flex h-full">
+							{Array.from(thumbnails.entries()).map(([time, thumbnail]) => {
+								const left = parseFloat(time) * 50; // 50px per second
+								return (
+									<div
+										key={time}
+										className="absolute top-0 bottom-0 border-r border-gray-600"
+										style={{
+											left: `${left}px`,
+											width: `${thumbnailWidth}px`,
+										}}
+									>
+										<img
+											src={thumbnail as any}
+											alt={`Thumbnail at ${time}s`}
+											className="h-full w-full object-cover"
+											style={{
+												top: isSelected ? "0.25rem" : "0rem",
+												bottom: isSelected ? "0.25rem" : "0rem",
+											}}
+										/>
+									</div>
+								);
+							})}
+						</div>
+					)}
 				</div>
 			</div>
 		);
